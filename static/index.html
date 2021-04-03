@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+        integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <title>台鐵搶票紀錄</title>
+    <style>
+        body {
+            height: 95vh;
+        }
+
+        p {
+            height: 100%;
+            max-height: 200px;
+            margin-top: -0.5rem;
+            font-size: 13px;
+            white-space: pre-line;
+        }
+
+        small {
+            line-height: 1.5rem;
+        }
+
+        svg.icon {
+            width: 1rem;
+            height: 1rem;
+            margin-top: -0.1rem;
+
+        }
+    </style>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+
+</head>
+
+<body>
+    <!-- screen -S [name] -X quit -->
+
+
+    <div id="app" class="container">
+        <div class="position-relative text-nowrap py-2 d-flex justify-content-between align-items-center">
+            <div v-if="status=='starting'" @click="reloadSec=1">
+                <span class="small text-muted">{{reloadSec}}秒</span>
+            </div>
+            <h5 class="h5 mb-0 mt-1 mx-auto">😈 台鐵搶票紀錄 😇</h5>
+            <button v-if="canStop" @click="stop()" :class="{'disabled':!canStop}" type="button"
+                class="btn btn-danger btn-sm my-1">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                停止
+            </button>
+
+        </div>
+        <!-- 有數據的時候 -->
+        <div class="row justify-content-center">
+            <!-- 等待開始 -->
+            <template v-if="status=='waiting'">
+                <div class="col-12 col-lg-6 col-xl-4  animate__animated animate__fadeInRight">
+                    <div class="card shadow mb-2 w-100">
+                        <div class="card-body">
+                            <h5 class="card-title d-flex justify-content-between">
+                                👇點擊開始來啟動吧
+                                <small class="small text-muted">尚未開始搶票</small>
+                            </h5>
+                            <!-- <h6 class="card-subtitle text-muted"></h6> -->
+                            <!-- 開始搶票 -->
+                            <button @click="start()" :class="{'disabled':!canAdd}" type="button"
+                                class="btn btn-primary btn-block my-1">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                開始
+                            </button>
+                            <!-- 設定搶票參數 -->
+                            <button @click="edit()" :class="{'disabled':!canAdd}" type="button"
+                                class="btn btn-secondary btn-block my-1">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                設定參數
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <!-- 設定參數 -->
+            <template v-if="status=='setting'">
+                <div class="col-12 col-lg-6 col-xl-4  animate__animated animate__fadeInRight">
+                    <div class="card shadow mb-2 w-100">
+                        <div class="card-body">
+                            <h5 class="card-title d-flex justify-content-between">
+                                👇設定參數
+                                <small class="small text-muted">
+                                    <a target="_blank"
+                                        href="https://www.railway.gov.tw/tra-tip-web/tip/tip001/tip121/query">台鐵官網</a>
+                                </small>
+                            </h5>
+                            <!-- <h6 class="card-subtitle text-muted"></h6> -->
+                            <div class="row">
+                                <div class="col-12 col-md-6 col-lg-12">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">身分證字號</label>
+                                        <input type="email" class="form-control" id="exampleInputEmail1" >
+                                      </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-12">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">去程日期</label>
+                                        <input type="date" class="form-control" id="exampleInputEmail1" >
+                                      </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-12">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">回程日期</label>
+                                        <input type="date" class="form-control" id="exampleInputEmail1" >
+                                      </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-12">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">一般座票數</label>
+                                        <input type="number" class="form-control" id="exampleInputEmail1" >
+                                      </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-12">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">出發站</label>
+                                        <input type="text" class="form-control" id="exampleInputEmail1" >
+                                      </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-12">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">抵達站</label>
+                                        <input type="text" class="form-control" id="exampleInputEmail1" >
+                                      </div>
+                                </div>
+                            </div>
+                            <div class="d-flex my-1">
+                                <button @click="gobackWaiting()" class="btn btn-secondary mr-1">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                </button>
+                                <button @click="saveSetting()" :class="{'disabled':!canAdd}" type="button"
+                                class="btn btn-primary btn-block">
+                                儲存設定
+                                <svg style="transform: rotate(45deg);margin-top: -0.45rem;" class="icon" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+
+                            </button>
+                            </div>
+                         
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <!-- 開始搶票 -->
+            <template v-if="status=='starting'">
+                <div v-for="item in tasks " class="col-12 col-lg-6 col-xl-4  animate__animated animate__fadeInRight">
+                    <div class="card shadow mb-2 w-100">
+                        <div class="card-body">
+                            <h5 class="card-title d-flex justify-content-between">
+                                {{item.name}}
+                                <small class="small text-muted">{{item.date}}</small>
+                            </h5>
+                            <!-- <h6 class="card-subtitle text-muted"></h6> -->
+                            <p v-text="item.log" class="card-text"></p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <!-- 載入中 -->
+            <template v-if="status=='loading'">
+                <div class="col-12 col-lg-6 col-xl-4  animate__animated animate__fadeInRight">
+                    <div class="card shadow mb-2 w-100">
+                        <div class="card-body">
+                            <div class="card-title d-flex justify-content-between mb-0">
+                                <h5 class="h5 mb-0 my-auto">載入中... </h5>
+                                <div
+                                    class="animate__infinite animate__animated animate__swing animate__slow text-warning">
+                                    <svg style="width: 1rem; height:1rem" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                reloadSec: 30,
+                status: "loading", //等待開始 waiting 設定 setting 開始 starting 載入中 loading
+                tasks: []
+            },
+            computed: {
+                canAdd() {
+                    return this.tasks.length == 0
+                },
+                canStop() {
+                    return this.tasks.length != 0
+                },
+
+
+            },
+            methods: {
+                getlogs() {
+                    const vm = this
+                    axios.get('/api/logs')
+                        .then(function (response) {
+                            // handle success
+                            console.log(response.data.tasks);
+                            vm.tasks = []
+                            vm.tasks = response.data.tasks
+                            if (vm.tasks.length > 0) {
+                                vm.status = "starting"
+                            } else {
+                                vm.status = "waiting"
+                            }
+                        })
+                },
+                gobackWaiting(){
+                    const vm = this
+                    vm.status = "waiting"
+                },
+                saveSetting(){
+                    const vm = this
+                    vm.gobackWaiting()
+                },
+                start() {
+                    const vm = this
+                    if (!vm.canAdd) {
+                        alert("請先停止")
+                        return 0
+                    } else {
+                        axios.get('/api/start').then(function (response) {
+                            if (response.data.status == 'ok') {
+                                vm.status = "loading"
+                                setTimeout(vm.getlogs, 5000);
+                                vm.reloadSec = 10
+                            }
+                        })
+                    }
+                },
+                edit() {
+                    const vm = this
+                    vm.status = "setting"
+                },
+                stop() {
+                    const vm = this
+                    if (!vm.canStop) {
+                        alert("請先開始")
+                        return 0
+                    } else {
+                        axios.get('/api/stop').then(function (response) {
+                            if (response.data.status == 'ok') {
+                                vm.tasks = []
+                                vm.status = "loading"
+                                vm.reloadSec = 3
+                            }
+                        })
+                    }
+                }
+            },
+            created() {
+                const vm = this
+                vm.getlogs()
+                setInterval(
+                    () => {
+                        if ((vm.status == "starting") || (vm.status == "loading") ){
+                            vm.reloadSec -= 1;
+                            if (vm.reloadSec <= 0) {
+                                vm.getlogs()
+                                vm.reloadSec = 30
+                            }
+                        }
+
+                    }
+                    , 1000)
+            }
+        })
+    </script>
+
+</body>
+
+</html>
